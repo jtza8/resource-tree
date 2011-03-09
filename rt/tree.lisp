@@ -5,11 +5,16 @@
 (in-package :resource-tree)
 
 (define-condition invalid-node (error)
-  ((node :initform (error "must specify node")
-         :initarg :node))
+  ((invalid-path :initform (error "must specify invalid-path")
+                 :initarg :invalid-path
+                 :reader invalid-path)
+   (valid-path :initform +nothing+
+               :initarg :valid-path
+               :reader valid-path))
   (:report (lambda (condition stream)
-             (with-slots (node) condition
-               (format stream "invalid node: ~a" node)))))
+             (with-slots (invalid-path valid-path) condition
+               (format stream "invalid path ~s~:[ but ~s is valid.~;~]"
+                       invalid-path (eq valid-path +nothing+) valid-path)))))
 
 (defclass resource-tree ()
   ((tree :initform '()
@@ -19,30 +24,21 @@
   (with-slots (tree) rtree
     (loop with pointer = tree
           for keyword in path
-          do (setf pointer (getf pointer keyword))
-          finally (progn (assert (or (null tree)
-                                     (not (null pointer)))
-                                 () 'invalid-node
-                                 :node path)
-                         (return pointer)))))
+          do (progn 
+               (assert (listp pointer) () 'invalid-node
+                       :invalid-path path
+                       :valid-path (reverse valid-path))
+               (setf pointer (getf pointer keyword +nothing+)))
+          collect keyword into valid-path
+          finally (return pointer))))
 
-(defmethod (setf node) (value (rtree resource-tree) &rest path)
-  (with-slots (tree) rtree
-    (if (null path)
-        (progn (check-type value list)
-               (return-from node (setf tree value)))
-        (loop with current = tree
-              for keyword in path
-              for remaining from (1- (length path)) downto 0
-              for next = (getf current keyword)
-              if (null next)
-              do (if (= remaining 0) 
-                     (setf (getf current keyword) value)
-                     (setf (getf current keyword) next
-                           current next))
-              else
-              do (if (= remaining 0)
-                     (setf (getf current keyword) value)
-                     (setf current next))
-              end
-              finally (return tree)))))
+(defmethod extend-tree ((rtree resource-tree) &rest path)
+  ())
+
+;; (defmethod (setf node) (value (rtree resource-tree) &rest path)
+;;   (with-slots (tree) rtree
+;;     (if (null path)
+;;         (progn (check-type value list)
+;;                (return-from node (setf tree value)))
+;;         (loop with pointer = tree
+;;               for

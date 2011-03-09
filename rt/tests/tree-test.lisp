@@ -8,12 +8,16 @@
   ())
 
 (def-test-method test-node ((test tree-test))
-  (let ((tree (make-instance 'resource-tree :tree '(:a 1 :b (:c 3 :d 4) :e 5))))
+  (let ((tree (make-instance 'resource-tree 
+                             :tree '(:a 1 :b (:c 3 :d 4) :e 5 :f ()))))
     (assert-equal 1 (node tree :a))
     (assert-equal '(:c 3 :d 4) (node tree :b))
     (assert-equal 3 (node tree :b :c))
     (assert-equal 4 (node tree :b :d))
-    (assert-equal 5 (node tree :e))))
+    (assert-equal 5 (node tree :e))
+    (assert-equal '() (node tree :f))
+    (assert-condition 'invalid-node (node tree :f :g :h))
+    (assert-condition 'invalid-node (node tree :b :c :z))))
 
 (def-test-method test-setf-node ((test tree-test))
   (let ((tree (make-instance 'resource-tree)))
