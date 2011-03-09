@@ -5,4 +5,4 @@
   :license "BSD-Style License"
   :depends-on ("cl-fad")
   :components ((:file "package")
-               (:file "tree")))
+               (:file "tree" :depends-on ("package"))))

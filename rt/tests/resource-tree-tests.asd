@@ -5,4 +5,4 @@
   :license "BSD-Style License"
   :depends-on ("resource-tree" "xlunit")
   :components ((:file "package")
-               (:file "tree-test")))
+               (:file "tree-test" :depends-on ("package"))))
