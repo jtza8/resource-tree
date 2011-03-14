@@ -4,7 +4,14 @@
 
 (defpackage #:resource-tree
   (:use #:cl #:cl-fad)
-  (:nicknames #:rt))
+  (:nicknames #:rt)
+  (:export #:invalid-node
+           #:invalid-path
+           #:valid-path
+           #:resource-tree
+           #:node
+           #:parse-keyword
+           #:load-path))
 
 (in-package :resource-tree)
 (defconstant +nothing+ (gensym "nothing-"))

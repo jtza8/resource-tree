@@ -5,3 +5,6 @@
 (in-package :resource-tree)
 
 (use-package :xlunit)
+
+(defparameter *test-tree-path* 
+  (asdf:system-relative-pathname :resource-tree-tests "test-tree/"))
