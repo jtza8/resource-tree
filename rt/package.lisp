@@ -11,7 +11,7 @@
            #:resource-tree
            #:node
            #:parse-keyword
-           #:load-path))
+           #:build-tree))
 
 (in-package :resource-tree)
 (defconstant +nothing+ (gensym "nothing-"))

@@ -46,6 +46,28 @@
           collect keyword into valid-path
           finally (return pointer))))
 
+(defmethod (setf node) (value (rtree resource-tree) &rest path)
+  (with-slots (tree) rtree
+    (loop initially (when (null path)
+                      (check-type value list)
+                      (return (setf tree value)))
+          with pointer = tree
+          for remaining from (length path) downto 1
+          for keyword in path
+          for next = (getf pointer keyword +nothing+)
+          if (= remaining 1)
+            return (if (eq next +nothing+)
+                       (nconc pointer (list keyword value))
+                       (setf (getf pointer keyword) value))
+          else
+            do (progn (assert (and (not (or (eq next +nothing+)))
+                                   (listp next))
+                              () 'invalid-node
+                              :invalid-path path
+                              :valid-path (reverse valid-path))
+                      (setf pointer next))
+          collect keyword into valid-path)))
+
 (defun parse-keyword (string)
   (flet ((strip-postfix (string)
            (let ((pos (position #\. string)))
@@ -55,17 +77,23 @@
     (intern (nsubstitute #\- #\_ (string-upcase (strip-postfix string)))
             "KEYWORD")))
               
-(defmethod load-path ((rtree resource-tree) path &key (recursive t))
+(defmethod build-tree ((rtree resource-tree) path &key (recursive t))
   (with-slots (file-loader) rtree
     (cond ((directory-exists-p path) 
            (loop for sub-path in (list-directory path)
                  if (and recursive (directory-exists-p sub-path))
                    collect (list (parse-keyword 
                                   (car (last (pathname-directory sub-path))))
-                                 (load-path rtree sub-path :recursive t))
+                                 (build-tree rtree sub-path :recursive t))
                    into sub-tree
                  else when (file-exists-p sub-path)
                    collect (funcall file-loader sub-path)
                    into sub-tree
                  finally (return (apply #'nconc sub-tree))))
           ((file-exists-p path) (funcall file-loader path)))))
+
+(defmethod load-path ((rtree resource-tree) path &key
+                      parent-node-path (recursive t))
+  (with-slots (tree) rtree
+    (let ((branch (build-tree rtree path :recursive recursive)))
+      (setf (apply #'node rtree parent-node-path) branch))))
