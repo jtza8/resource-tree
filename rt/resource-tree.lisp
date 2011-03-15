@@ -8,13 +8,13 @@
   ((invalid-path :initform (error "must specify invalid-path")
                  :initarg :invalid-path
                  :reader invalid-path)
-   (valid-path :initform +nothing+
+   (valid-path :initform *nothing*
                :initarg :valid-path
                :reader valid-path))
   (:report (lambda (condition stream)
              (with-slots (invalid-path valid-path) condition
                (format stream "invalid path ~s~:[ but ~s is valid.~;~]"
-                       invalid-path (eq valid-path +nothing+) valid-path)))))
+                       invalid-path (eq valid-path *nothing*) valid-path)))))
 
 (defclass resource-tree ()
   ((tree :initform '()
@@ -37,8 +37,8 @@
           do (let (next)
                (assert (and 
                         (listp pointer) 
-                        (not (eq (setf next (getf pointer keyword +nothing+))
-                                 +nothing+)))
+                        (not (eq (setf next (getf pointer keyword *nothing*))
+                                 *nothing*)))
                        () 'invalid-node
                        :invalid-path path
                        :valid-path (reverse valid-path))
@@ -51,39 +51,45 @@
     (loop initially (when (null path)
                       (check-type value list)
                       (return (setf tree value)))
-          with pointer = tree
+          with now = tree and past = tree
           for remaining from (length path) downto 1
           for keyword in path
-          for next = (getf pointer keyword +nothing+)
+          for next = (getf now keyword *nothing*)
           if (= remaining 1)
-            return (if (eq next +nothing+)
-                       (nconc pointer (list keyword value))
-                       (setf (getf pointer keyword) value))
+            return (let ((pair (list keyword value))) ; Messy
+                     (if (null now)
+                         (if (null tree)
+                             (setf tree pair)
+                             (setf (getf past (car valid-path)) pair))
+                         (if (eq next *nothing*)
+                             (nconc now pair)
+                             (setf (getf now keyword) value)))
+                     value)
           else
-            do (progn (assert (and (not (or (eq next +nothing+)))
+            do (progn (assert (and (not (or (eq next *nothing*)))
                                    (listp next))
                               () 'invalid-node
                               :invalid-path path
                               :valid-path (reverse valid-path))
-                      (setf pointer next))
+                      (setf past now
+                            now next))
           collect keyword into valid-path)))
 
-(defun parse-keyword (string)
-  (flet ((strip-postfix (string)
-           (let ((pos (position #\. string)))
-             (if (null pos)
-                 string
-                 (subseq string 0 pos)))))
-    (intern (nsubstitute #\- #\_ (string-upcase (strip-postfix string)))
-            "KEYWORD")))
+(defun path-keyword (path)
+  (let* ((keyword (or (pathname-name path)
+                      (car (last (pathname-directory path)))))
+         (pos (position #\. keyword)))
+    (unless (null pos)
+      (setf keyword (subseq keyword 0 pos)))
+    (setf keyword (nsubstitute #\- #\_ (string-upcase keyword)))
+    (intern  keyword "KEYWORD")))
               
 (defmethod build-tree ((rtree resource-tree) path &key (recursive t))
   (with-slots (file-loader) rtree
     (cond ((directory-exists-p path) 
            (loop for sub-path in (list-directory path)
                  if (and recursive (directory-exists-p sub-path))
-                   collect (list (parse-keyword 
-                                  (car (last (pathname-directory sub-path))))
+                   collect (list (path-keyword sub-path)
                                  (build-tree rtree sub-path :recursive t))
                    into sub-tree
                  else when (file-exists-p sub-path)

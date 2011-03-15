@@ -7,9 +7,9 @@
 (defclass tree-test (test-case)
   ())
 
-(defconstant +test-path-result-basic+ 
+(defparameter *test-path-result-basic*
   '(:HELLO "Hello World!"))
-(defconstant +test-path-result-recursive+
+(defparameter *test-path-result-recursive*
   '(:HELLO "Hello World!" :PORTAL (:CAKE "The cake is a lie.")))
 
 (def-test-method test-node ((test tree-test))
@@ -28,21 +28,27 @@
 
 (def-test-method test-setf-node ((test tree-test))
   (let ((tree (make-instance 'resource-tree :file-loader nil)))
-    (setf (node tree) '(:a 1 :b 2))
+    (assert-equal (setf (node tree) #1='(:a 1 :b 2)) #1#)
     (assert-equal 2 (node tree :b))
     (assert-condition 'simple-type-error (setf (node tree) 'blah))
     (assert-equal 1 (node tree :a))
-    (setf (node tree :b) 3)
+    (assert-equal 3 (setf (node tree :b) 3))
     (assert-equal 3 (node tree :b))
-    (setf (node tree :c) 4)
+    (assert-equal 4 (setf (node tree :c) 4))
     (assert-equal 4 (node tree :c))
-    (assert-condition 'invalid-node (setf (node tree :c :d :e) 10))))
+    (assert-condition 'invalid-node (setf (node tree :c :d) 10))
+    (assert-equal (setf (node tree) nil) nil)
+    (assert-equal 3 (setf (node tree :foo) 3))
+    (assert-equal 3 (node tree :foo))
+    (setf (node tree :blah) '()
+          (node tree :blah :foo) 5)
+    (assert-equal 5 (node tree :blah :foo))))
 
 (defun process-str-file (file-path)
   (unless (string= (pathname-type file-path) "str")
     (return-from process-str-file '()))
   (with-open-file (file file-path)
-    (list (parse-keyword (file-namestring file-path))
+    (list (path-keyword file-path)
           (loop with eof = (gensym) and line = ""
                 if (eq (setf line (read-line file nil eof)) eof) do
                    (return (format nil "~{~&~a~}" strings))
@@ -52,17 +58,18 @@
   (let ((string-tree (make-instance 'resource-tree 
                                     :file-loader #'process-str-file))
         (hello-path (merge-pathnames "hello.str" *test-tree-path*)))
-    (assert-equal +test-path-result-basic+ (build-tree string-tree hello-path))
-    (assert-equal +test-path-result-recursive+
+    (assert-equal *test-path-result-basic* (build-tree string-tree hello-path))
+    (assert-equal *test-path-result-recursive*
                   (build-tree string-tree *test-tree-path*))
-    (assert-equal +test-path-result-basic+
+    (assert-equal *test-path-result-basic*
                   (build-tree string-tree *test-tree-path* :recursive nil))))
 
 (def-test-method test-load-path ((test tree-test))
   (let ((string-tree (make-instance 'resource-tree
                                     :file-loader #'process-str-file)))
     (load-path string-tree *test-tree-path* :recursive nil)
-    (setf (node string-tree :foo) '(:1 ))
+    (assert-equal "Hello World!" (node string-tree :hello))
+    (setf (node string-tree :foo) '())
     (load-path string-tree *test-tree-path* 
                :recursive nil
                :parent-node-path '(:foo))

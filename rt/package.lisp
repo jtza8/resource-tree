@@ -10,8 +10,9 @@
            #:valid-path
            #:resource-tree
            #:node
-           #:parse-keyword
-           #:build-tree))
+           #:path-keyword
+           #:build-tree
+           #:load-path))
 
 (in-package :resource-tree)
-(defconstant +nothing+ (gensym "nothing-"))
+(defparameter *nothing* (gensym "nothing-"))
