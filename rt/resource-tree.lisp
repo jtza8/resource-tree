@@ -30,50 +30,101 @@
                           (error (format nil "file-loader needed but ~
                                               explicitly not specified")))))))
 
+(defun node-of (branch &rest path)
+  (loop with pointer = branch
+        for keyword in path
+        do (let (next)
+             (assert (and 
+                      (listp pointer) 
+                      (not (eq (setf next (getf pointer keyword *nothing*))
+                               *nothing*)))
+                     () 'invalid-node
+                     :invalid-path path
+                     :valid-path (reverse valid-path))
+             (setf pointer next))
+        collect keyword into valid-path
+        finally (return pointer)))
+
 (defmethod node ((rtree resource-tree) &rest path)
   (with-slots (tree) rtree
-    (loop with pointer = tree
-          for keyword in path
-          do (let (next)
-               (assert (and 
-                        (listp pointer) 
-                        (not (eq (setf next (getf pointer keyword *nothing*))
-                                 *nothing*)))
+    (apply #'node-of tree path)))
+
+(defun setf-node-of (branch value &rest path)
+  (loop
+     initially (when (null path)
+                 (check-type value list)
+                 (return (setf branch value)))
+     with now = branch and past = branch
+     for remaining from (length path) downto 1
+     for keyword in path
+     for next = (getf now keyword *nothing*)
+     if (= remaining 1)
+     return (let ((pair (list keyword value)))
+              (if (null now)
+                  (if (null branch)
+                      (setf branch pair)
+                      (setf (getf past (car valid-path)) pair))
+                  (if (eq next *nothing*)
+                      (nconc now pair)
+                      (setf (getf now keyword) value)))
+              value)
+     else
+     do (progn (assert (and (not (eq next *nothing*))
+                            (listp next))
                        () 'invalid-node
                        :invalid-path path
                        :valid-path (reverse valid-path))
-               (setf pointer next))
-          collect keyword into valid-path
-          finally (return pointer))))
+               (setf past now
+                     now next))
+     collect keyword into valid-path))
 
-(defmethod (setf node) (value (rtree resource-tree) &rest path)
-  (with-slots (tree) rtree
-    (loop initially (when (null path)
-                      (check-type value list)
-                      (return (setf tree value)))
-          with now = tree and past = tree
-          for remaining from (length path) downto 1
-          for keyword in path
-          for next = (getf now keyword *nothing*)
-          if (= remaining 1)
-            return (let ((pair (list keyword value))) ; Messy
-                     (if (null now)
-                         (if (null tree)
-                             (setf tree pair)
-                             (setf (getf past (car valid-path)) pair))
-                         (if (eq next *nothing*)
-                             (nconc now pair)
-                             (setf (getf now keyword) value)))
-                     value)
-          else
-            do (progn (assert (and (not (or (eq next *nothing*)))
-                                   (listp next))
-                              () 'invalid-node
-                              :invalid-path path
-                              :valid-path (reverse valid-path))
-                      (setf past now
-                            now next))
-          collect keyword into valid-path)))
+(define-setf-expander node-of (branch &rest path &environment env)
+  (multiple-value-bind (tmp-vars tmp-forms store-vars setter getter)
+      (get-setf-expansion branch env)
+    (declare (ignore store-vars setter))
+    (let ((value (gensym)))
+      (values tmp-vars
+              tmp-forms
+              `(,value)
+              (if (null path)
+                  `(progn
+                     (check-type ,value list)
+                     (setf ,branch ,value))
+                  `(if (null ,branch)
+                       ,(if (> (length path) 1)
+                            `(error 'invalid-node :invalid-path ',path)
+                            `(setf (getf ,branch ,@path) ,value))
+                       (setf-node-of ,branch ,value ,@path)))
+              getter))))
+
+;; (defmethod (setf node) (value (rtree resource-tree) &rest path)
+;;   (with-slots (tree) rtree
+;;     (loop initially (when (null path)
+;;                       (check-type value list)
+;;                       (return (setf tree value)))
+;;           with now = tree and past = tree
+;;           for remaining from (length path) downto 1
+;;           for keyword in path
+;;           for next = (getf now keyword *nothing*)
+;;           if (= remaining 1)
+;;             return (let ((pair (list keyword value)))
+;;                      (if (null now)
+;;                          (if (null tree)
+;;                              (setf tree pair)
+;;                              (setf (getf past (car valid-path)) pair))
+;;                          (if (eq next *nothing*)
+;;                              (nconc now pair)
+;;                              (setf (getf now keyword) value)))
+;;                      value)
+;;           else
+;;             do (progn (assert (and (not (or (eq next *nothing*)))
+;;                                    (listp next))
+;;                               () 'invalid-node
+;;                               :invalid-path path
+;;                               :valid-path (reverse valid-path))
+;;                       (setf past now
+;;                             now next))
+;;           collect keyword into valid-path)))
 
 (defun path-keyword (path)
   (let* ((keyword (or (pathname-name path)
