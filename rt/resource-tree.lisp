@@ -17,7 +17,7 @@
                        invalid-path (eq valid-path *nothing*) valid-path)))))
 
 (defclass resource-tree ()
-  ((tree :initform '()
+  ((tree :initform (make-hash-table)
          :initarg :tree)
    (file-loader :initform (error "must specify file-loader")
                 :initarg :file-loader)))
@@ -51,24 +51,24 @@
   (with-slots (tree) rtree
     (apply #'node-of tree path)))
 
-(defsetf node-of (branch &rest path) (value)
-  (let ((parent-path (gensym))
-        (parent (gensym))
-        (key (gensym)))
-    `(let* ((,parent-path ',path)
-            (,parent (apply #'node-of ,branch (butlast ,parent-path)))
-            (,key (car (last ,parent-path))))
-       (assert (and (not (null ,key))
-                    (typep ,parent 'hash-table))
-               () 'invalid-node
-               :invalid-path ,parent-path)
-       (setf (gethash ,key ,parent) ,value))))
+(defun set-node-of (branch value &rest path)
+  (let* ((parent (apply #'node-of branch (butlast path)))
+         (key (car (last path))))
+    (assert (and (not (null key))
+                 (typep parent 'hash-table))
+            () 'invalid-node
+            :invalid-path path)
+    (setf (gethash key parent) value)))
 
-;; (defmethod (setf node-of) (value (rtree resource-tree) &rest path)
-;;   (with-slots (tree) rtree
-;;     (macrolet ((setf-node (tree path value)
-;;                  `(setf (node-of ,tree ,@path) ,value)))
-;;       (setf-node tree path value))))
+(defsetf node-of (branch &rest path) (value)
+  `(set-node-of ,branch ,value ,@path))
+
+(defmethod (setf node) (value (rtree resource-tree) &rest path)
+  (with-slots (tree) rtree
+    (if (null path)
+        (progn (check-type value hash-table)
+               (setf tree value))
+        (apply #'set-node-of tree value path))))
 
 (defun path-keyword (path)
   (let* ((keyword (or (pathname-name path)
@@ -87,7 +87,8 @@
                    if (and recursive (directory-exists-p sub-path))
                      do (setf (gethash (path-keyword sub-path) sub-tree)
                               (build-tree rtree sub-path :recursive t))
-                   else when (file-exists-p sub-path)
+                   else when (and (not (directory-exists-p sub-path))
+                                  (file-exists-p sub-path))
                      do (setf (gethash (path-keyword sub-path) sub-tree)
                               (funcall file-loader sub-path))
                    finally (return sub-tree)))
@@ -98,6 +99,5 @@
 
 (defmethod load-path ((rtree resource-tree) path &key
                       parent-node-path (recursive t))
-  (with-slots (tree) rtree
-    (let ((branch (build-tree rtree path :recursive recursive)))
-      (setf (apply #'node rtree parent-node-path) branch))))
+  (let ((branch (build-tree rtree path :recursive recursive)))
+    (setf (apply #'node rtree parent-node-path) branch)))

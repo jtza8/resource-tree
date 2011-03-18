@@ -29,6 +29,13 @@
     (setf (node-of tree :b) sub-tree)
     (assert-equal 4 (node-of tree :b :d))))
 
+(def-test-method test-setf-node ((test tree-test))
+  (let ((tree (make-instance 'resource-tree :file-loader nil)))
+    (setf (node tree) (make-hash-table))
+    (assert-condition 'simple-type-error (setf (node tree) 'foo))
+    (setf (node tree :a) 1)
+    (assert-equal 1 (node tree :a))))
+
 (defun process-str-file (file-path)
   (unless (string= (pathname-type file-path) "str")
     (return-from process-str-file '()))
@@ -55,13 +62,13 @@
       (setf branch (build-tree string-tree *test-tree-path* :recursive nil))
       (assert-condition 'invalid-node (node-of branch :portal)))))
 
-;; (def-test-method test-load-path ((test tree-test))
-;;   (let ((string-tree (make-instance 'resource-tree
-;;                                     :file-loader #'process-str-file)))
-;;     (load-path string-tree *test-tree-path* :recursive nil)
-;;     (assert-equal "Hello World!" (node string-tree :hello))
-;;     (setf (node string-tree :foo) '())
-;;     (load-path string-tree *test-tree-path* 
-;;                :recursive nil
-;;                :parent-node-path '(:foo))
-;;     (assert-equal "Hello World!" (node string-tree :foo :hello))))
+(def-test-method test-load-path ((test tree-test))
+  (let ((string-tree (make-instance 'resource-tree
+                                    :file-loader #'process-str-file)))
+    (load-path string-tree *test-tree-path* :recursive nil)
+    (assert-equal "Hello World!" (node string-tree :hello))
+    (setf (node string-tree :foo) (make-hash-table))
+    (load-path string-tree *test-tree-path* 
+               :recursive nil
+               :parent-node-path '(:foo))
+    (assert-equal "Hello World!" (node string-tree :foo :hello))))
