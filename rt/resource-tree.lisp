@@ -114,6 +114,6 @@
         (funcall free-func node))))
 
 (defgeneric free (resource))
-(defmethod free ((rtree resource-tree) node)
+(defmethod free ((rtree resource-tree))
   (with-slots (tree) rtree
     (free-node rtree tree)))
