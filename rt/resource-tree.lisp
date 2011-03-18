@@ -20,7 +20,9 @@
   ((tree :initform (make-hash-table)
          :initarg :tree)
    (file-loader :initform (error "must specify file-loader")
-                :initarg :file-loader)))
+                :initarg :file-loader)
+   (free-func :initform nil
+              :initarg :free-func)))
 
 (defmethod initialize-instance :after ((rtree resource-tree) &key)
   (with-slots (file-loader) rtree
@@ -51,7 +53,7 @@
   (with-slots (tree) rtree
     (apply #'node-of tree path)))
 
-(defun set-node-of (branch value &rest path)
+(defun set-node-of (branch value path)
   (let* ((parent (apply #'node-of branch (butlast path)))
          (key (car (last path))))
     (assert (and (not (null key))
@@ -61,14 +63,14 @@
     (setf (gethash key parent) value)))
 
 (defsetf node-of (branch &rest path) (value)
-  `(set-node-of ,branch ,value ,@path))
+  `(set-node-of ,branch ,value ',path))
 
 (defmethod (setf node) (value (rtree resource-tree) &rest path)
   (with-slots (tree) rtree
     (if (null path)
         (progn (check-type value hash-table)
                (setf tree value))
-        (apply #'set-node-of tree value path))))
+        (set-node-of tree value path))))
 
 (defun path-keyword (path)
   (let* ((keyword (or (pathname-name path)
@@ -101,3 +103,17 @@
                       parent-node-path (recursive t))
   (let ((branch (build-tree rtree path :recursive recursive)))
     (setf (apply #'node rtree parent-node-path) branch)))
+
+(defmethod free-node ((rtree resource-tree) node)
+  (with-slots (free-func) rtree
+    (when (null free-func)
+      (return-from free-node))
+    (if (typep node 'hash-table)
+        (loop for sub-node being the hash-values in node
+              do (free-node rtree sub-node))
+        (funcall free-func node))))
+
+(defgeneric free (resource))
+(defmethod free ((rtree resource-tree) node)
+  (with-slots (tree) rtree
+    (free-node rtree tree)))

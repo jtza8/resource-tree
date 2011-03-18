@@ -4,10 +4,10 @@
 
 (in-package :resource-tree)
 
-(defclass tree-test (test-case)
+(defclass resource-tree-test (test-case)
   ())
 
-(def-test-method test-node-of ((test tree-test))
+(def-test-method test-node-of ((test resource-tree-test))
   (let ((tree (make-hash-table)))
     (setf (gethash :a tree) 1
           (gethash :b tree) (make-hash-table)
@@ -17,7 +17,7 @@
     (assert-condition 'invalid-node (node-of tree :c))
     (assert-condition 'invalid-node (node-of tree :a :d))))
 
-(def-test-method test-setf-node-of ((test tree-test))
+(def-test-method test-setf-node-of ((test resource-tree-test))
   (let ((tree (make-hash-table))
         (sub-tree (make-hash-table)))
     (setf (gethash :c sub-tree) 3
@@ -29,7 +29,7 @@
     (setf (node-of tree :b) sub-tree)
     (assert-equal 4 (node-of tree :b :d))))
 
-(def-test-method test-setf-node ((test tree-test))
+(def-test-method test-setf-node ((test resource-tree-test))
   (let ((tree (make-instance 'resource-tree :file-loader nil)))
     (setf (node tree) (make-hash-table))
     (assert-condition 'simple-type-error (setf (node tree) 'foo))
@@ -45,7 +45,7 @@
              (return (format nil "~{~&~a~}" strings))
           else collect line into strings)))
 
-(def-test-method test-build-tree ((test tree-test))
+(def-test-method test-build-tree ((test resource-tree-test))
   (let ((hello-path (merge-pathnames "hello.str" *test-tree-path*))
         string-tree branch)
     (flet ((reset-string-tree ()
@@ -62,7 +62,7 @@
       (setf branch (build-tree string-tree *test-tree-path* :recursive nil))
       (assert-condition 'invalid-node (node-of branch :portal)))))
 
-(def-test-method test-load-path ((test tree-test))
+(def-test-method test-load-path ((test resource-tree-test))
   (let ((string-tree (make-instance 'resource-tree
                                     :file-loader #'process-str-file)))
     (load-path string-tree *test-tree-path* :recursive nil)
@@ -72,3 +72,15 @@
                :recursive nil
                :parent-node-path '(:foo))
     (assert-equal "Hello World!" (node string-tree :foo :hello))))
+
+(def-test-method test-free-node ((test resource-tree-test))
+  (let ((string-tree (make-instance 'resource-tree
+                                    :file-loader #'process-str-file
+                                    :free-func #'nreverse)))
+    (load-path string-tree *test-tree-path*)
+    (assert-equal "Hello World!" (node string-tree :hello))
+    (free-node string-tree (node string-tree :hello))
+    (assert-equal "!dlroW olleH" (node string-tree :hello))
+    (free-node string-tree (node string-tree))
+    (assert-equal "Hello World!" (node string-tree :hello))
+    (assert-equal ".eil a si ekac ehT" (node string-tree :portal :cake))))
