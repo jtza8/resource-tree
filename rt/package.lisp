@@ -12,7 +12,9 @@
            #:node
            #:path-keyword
            #:build-tree
-           #:load-path))
+           #:load-path
+           #:free-tree
+           #:free))
 
 (in-package :resource-tree)
 (defparameter *nothing* (gensym "nothing-"))

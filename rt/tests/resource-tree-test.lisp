@@ -84,3 +84,15 @@
     (free-node string-tree (node string-tree))
     (assert-equal "Hello World!" (node string-tree :hello))
     (assert-equal ".eil a si ekac ehT" (node string-tree :portal :cake))))
+
+(def-test-method test-with-nodes ((test resource-tree-test))
+  (let ((string-tree (make-instance 'resource-tree
+                                    :file-loader #'process-str-file
+                                    :free-func #'nreverse)))
+    (load-path string-tree *test-tree-path*)
+    (assert-condition 'invalid-node
+                      (with-nodes (blah) (node string-tree)
+                        (declare (ignore blah))))
+    (with-nodes (portal hello) (node string-tree)
+      (assert-equal "Hello World!" hello)
+      (assert-equal "The cake is a lie." (node-of portal :cake)))))

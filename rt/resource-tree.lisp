@@ -37,7 +37,7 @@
         for key in path
         for remaining from (length path) downto 1
         do (multiple-value-bind (value present)
-               (gethash key (or pointer branch))
+               (gethash key pointer)
              (assert (and present
                           (if (> remaining 1) 
                               (typep value 'hash-table)
@@ -117,3 +117,12 @@
 (defmethod free ((rtree resource-tree))
   (with-slots (tree) rtree
     (free-node rtree tree)))
+
+(defmacro with-nodes (resources resource-branch &body body)
+  (let ((node (gensym "RESOURCE-BRANCH-")))
+    `(let ((,node ,resource-branch))
+       (let (,@(loop for resource in resources collect
+                    (list resource
+                          `(node-of ,node ,(intern (symbol-name resource)
+                                                         "KEYWORD")))))
+         ,@body))))
