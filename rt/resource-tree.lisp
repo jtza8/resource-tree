@@ -118,6 +118,15 @@
   (with-slots (tree) rtree
     (free-node rtree tree)))
 
+(defmethod remove-node ((rtree resource-tree) &rest path)
+  (let ((branch (apply #'node rtree (butlast path)))
+        (keyword (car (last path))))
+    (assert (hash-table-p branch)
+            () 'invalid-node
+            :invalid-path path)
+    (free-node rtree (apply #'node rtree path))
+    (remhash keyword branch)))
+
 (defmacro with-nodes (resources resource-branch &body body)
   (let ((node (gensym "RESOURCE-BRANCH-")))
     `(let ((,node ,resource-branch))
@@ -126,3 +135,4 @@
                           `(node-of ,node ,(intern (symbol-name resource)
                                                          "KEYWORD")))))
          ,@body))))
+

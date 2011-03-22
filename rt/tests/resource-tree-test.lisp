@@ -85,6 +85,18 @@
     (assert-equal "Hello World!" (node string-tree :hello))
     (assert-equal ".eil a si ekac ehT" (node string-tree :portal :cake))))
 
+(def-test-method test-remove-node ((test resource-tree-test))
+  (let ((string-tree (make-instance 'resource-tree
+                                    :file-loader #'process-str-file
+                                    :free-func #'nreverse)))
+    (load-path string-tree *test-tree-path*)
+    (remove-node string-tree :hello)
+    (assert-condition 'invalid-node (node string-tree :hello))
+    (assert-equal "The cake is a lie." (node string-tree :portal :cake))
+    (remove-node string-tree :portal)
+    (assert-condition 'invalid-node (node string-tree :portal))
+    (assert-condition 'invalid-node (remove-node string-tree :hello))))
+
 (def-test-method test-with-nodes ((test resource-tree-test))
   (let ((string-tree (make-instance 'resource-tree
                                     :file-loader #'process-str-file
