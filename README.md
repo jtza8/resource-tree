@@ -31,7 +31,7 @@ keyword corresponding to `FILE-NAME` with everything after the first
 full-stop truncated and all spaces and underscores replaced with a
 hyphen. All directories turn into branches when `LOAD-PATH` is called
 with the recursive flag set to `T` (set by default). The same
-"path-name to keyword" methodology is applies to directories.
+"path-name to keyword" methodology is applied to directories.
 
     (defun load-image (file-name)
       (unless (string= "png" (pathname-type file-name))
