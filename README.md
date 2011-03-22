@@ -23,15 +23,15 @@ Where `/path/to/file/or/dir/` has the directory structure:
          |- ...
 
 The following code creates a tree of readily usable images by
-recursively iterating through directories to find files. For each
-file found, the `LOAD-FUNCTION` is called. In this case it's
+recursively iterating through directories to find files. For each file
+found, the `LOAD-FUNCTION` is called. In this case it's
 `LOAD-IMAGE`. If the `LOAD-FUNCTION` returns anything other than `NIL`
 the value returned is bound in a hash-table to a key which is a
 keyword corresponding to `FILE-NAME` with everything after the first
 full-stop truncated and all spaces and underscores replaced with a
-hyphen. All directories turn into sub-trees when `LOAD-PATH` is called
+hyphen. All directories turn into branches when `LOAD-PATH` is called
 with the recursive flag set to `T` (set by default). The same
-path-name to keyword methodology is applies to directories.
+"path-name to keyword" methodology is applies to directories.
 
     (defun load-image (file-name)
       (unless (string= "png" (pathname-type file-name))
