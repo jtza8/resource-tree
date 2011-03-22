@@ -135,4 +135,3 @@
                           `(node-of ,node ,(intern (symbol-name resource)
                                                          "KEYWORD")))))
          ,@body))))
-
