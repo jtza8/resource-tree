@@ -10,8 +10,7 @@ after use.
 
 Where `/path/to/file/or/dir/` has the directory structure:
 
-`
-dir
+`dir
  |- branch
  |   |- sub-branch
  |   |   |- leaf.png
@@ -21,8 +20,7 @@ dir
  |       |- ...
  |    
  |- other-branch
-     |- ...
-`
+     |- ...`
 
 The following code creates a tree of readily usable images by
 recursively iterating through directories to find files. For each
@@ -35,8 +33,7 @@ hyphen. All directories turn into sub-trees when `LOAD-PATH` is called
 with the recursive flag set to `T` (set by default). The same
 path-name to keyword methodology is applies to directories.
 
-`
-(defun load-image (file-name)
+`(defun load-image (file-name)
   (unless (string= "png" (pathname-type file-name))
     (return-from load-image))
   (let ((image (il:gen-image)))
@@ -50,8 +47,7 @@ path-name to keyword methodology is applies to directories.
   (with-nodes (leaf acorn) (node tree :branch :sub-branch)
     (il:bind-image leaf)
     (il:flip-image)
-    ...))
-`
+    ...))`
 
 `WITH-RESOURCE-TREE` assigns an instance of `RESOURCE-TREE` to `TREE`
 with the remaining arguments being initialisation arguments for the
@@ -62,9 +58,11 @@ set.
 ## Dependencies
 
 Prerequisites:
+
 * None
 
 Optional:
+
 * xlUnit (for unit tests)
 
 ## Installation
