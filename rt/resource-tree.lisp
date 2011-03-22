@@ -19,17 +19,17 @@
 (defclass resource-tree ()
   ((tree :initform (make-hash-table)
          :initarg :tree)
-   (file-loader :initform (error "must specify file-loader")
-                :initarg :file-loader)
-   (free-func :initform nil
-              :initarg :free-func)))
+   (load-function :initform (error "must specify load-function")
+                  :initarg :load-function)
+   (free-function :initform nil
+                  :initarg :free-function)))
 
 (defmethod initialize-instance :after ((rtree resource-tree) &key)
-  (with-slots (file-loader) rtree
-    (when (null file-loader)
-      (setf file-loader (lambda (file)
+  (with-slots (load-function) rtree
+    (when (null load-function)
+      (setf load-function (lambda (file)
                           (declare (ignore file))
-                          (error (format nil "file-loader needed but ~
+                          (error (format nil "load-function needed but ~
                                               explicitly not specified")))))))
 
 (defun node-of (branch &rest path)
@@ -78,11 +78,13 @@
          (pos (position #\. keyword)))
     (unless (null pos)
       (setf keyword (subseq keyword 0 pos)))
-    (setf keyword (nsubstitute #\- #\_ (string-upcase keyword)))
-    (intern  keyword "KEYWORD")))
+    (setf keyword (string-upcase keyword))
+    (nsubstitute #\- #\_ keyword)
+    (nsubstitute #\- #\space keyword)
+    (intern keyword "KEYWORD")))
               
 (defmethod build-tree ((rtree resource-tree) path &key (recursive t))
-  (with-slots (file-loader) rtree
+  (with-slots (load-function) rtree
     (let ((sub-tree (make-hash-table)))
       (cond ((directory-exists-p path) 
              (loop for sub-path in (list-directory path)
@@ -92,11 +94,11 @@
                    else when (and (not (directory-exists-p sub-path))
                                   (file-exists-p sub-path))
                      do (setf (gethash (path-keyword sub-path) sub-tree)
-                              (funcall file-loader sub-path))
+                              (funcall load-function sub-path))
                    finally (return sub-tree)))
             ((file-exists-p path) 
              (setf (gethash (path-keyword path) sub-tree)
-                   (funcall file-loader path))))
+                   (funcall load-function path))))
       sub-tree)))
 
 (defmethod load-path ((rtree resource-tree) path &key
@@ -105,13 +107,13 @@
     (setf (apply #'node rtree parent-node-path) branch)))
 
 (defmethod free-node ((rtree resource-tree) node)
-  (with-slots (free-func) rtree
-    (when (null free-func)
+  (with-slots (free-function) rtree
+    (when (null free-function)
       (return-from free-node))
     (if (typep node 'hash-table)
         (loop for sub-node being the hash-values in node
               do (free-node rtree sub-node))
-        (funcall free-func node))))
+        (funcall free-function node))))
 
 (defgeneric free (resource))
 (defmethod free ((rtree resource-tree))
@@ -135,3 +137,8 @@
                           `(node-of ,node ,(intern (symbol-name resource)
                                                          "KEYWORD")))))
          ,@body))))
+
+(defmacro with-resource-tree ((var &rest args) &body body)
+  `(let ((,var (make-instance 'resource-tree ,@args)))
+     (unwind-protect (progn ,@body)
+       (free ,var))))
