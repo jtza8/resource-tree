@@ -24,14 +24,6 @@
    (free-function :initform nil
                   :initarg :free-function)))
 
-(defmethod initialize-instance :after ((rtree resource-tree) &key)
-  (with-slots (load-function) rtree
-    (when (null load-function)
-      (setf load-function (lambda (file)
-                          (declare (ignore file))
-                          (error (format nil "load-function needed but ~
-                                              explicitly not specified")))))))
-
 (defun node-of (branch &rest path)
   (loop with pointer = branch
         for key in path
