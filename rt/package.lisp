@@ -5,16 +5,19 @@
 (defpackage #:resource-tree
   (:use #:cl #:cl-fad)
   (:nicknames #:rt)
-  (:export #:invalid-node
+  (:export #:free
+           #:free-node
+           #:invalid-node
            #:invalid-path
-           #:valid-path
-           #:resource-tree
-           #:node
-           #:path-keyword
-           #:build-tree
            #:load-path
-           #:free-tree
-           #:free))
+           #:node
+           #:node-of
+           #:path-keyword
+           #:remove-node
+           #:resource-tree
+           #:valid-path
+           #:with-nodes
+           #:with-resource-tree))
 
 (in-package :resource-tree)
 (defparameter *nothing* (gensym "nothing-"))

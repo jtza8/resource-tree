@@ -53,9 +53,9 @@ with the recursive flag set to `T` (set by default). The same
 assigns it to `TREE` with the remaining arguments being initialisation
 arguments for the instance. `LOAD-PATH` loads a file or directory into
 the tree. The optional `:PARENT-NODE-PATH` key specifies the path to
-the parent node using a list. It may be called more than
+the parent node using a list. `LOAD-PATH` may be called more than
 once. `WITH-NODES` creates variables bound to the specified leaves of
-the provided node. `NODE` is used to retrieve a single node (leaf or
+the provided node. `NODE` is used to retrieve a single node (a leaf or
 branch) from the tree path given to it. After the code is run, `FREE`
 is called on `TREE` which frees all nodes in tree using
 `FREE-FUNCTION` _if_ `FREE-FUNCTION` was set.
