@@ -5,7 +5,8 @@
 (defpackage #:resource-tree
   (:use #:cl #:cl-fad)
   (:nicknames #:rt)
-  (:export #:free
+  (:export #:clear-tree
+           #:free
            #:free-node
            #:invalid-node
            #:invalid-path

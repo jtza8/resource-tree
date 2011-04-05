@@ -119,7 +119,13 @@
             () 'invalid-node
             :invalid-path path)
     (free-node rtree (apply #'node rtree path))
-    (remhash keyword branch)))
+    (if (null keyword)
+        (setf (node rtree) (make-hash-table))
+        (remhash keyword branch))))
+
+(declaim (inline clear-tree))
+(defmethod clear-tree ((rtree resource-tree))
+  (remove-node rtree))
 
 (defmacro with-nodes (resources resource-branch &body body)
   (let ((node (gensym "RESOURCE-BRANCH-")))
