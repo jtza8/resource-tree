@@ -11,6 +11,8 @@
            #:invalid-node
            #:invalid-path
            #:load-path
+           #:make-branch
+           #:map-branch
            #:node
            #:node-of
            #:path-keyword

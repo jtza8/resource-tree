@@ -102,6 +102,17 @@
     (assert-condition 'invalid-node (node string-tree :portal))
     (assert-condition 'invalid-node (remove-node string-tree :hello))))
 
+(def-test-method test-map-branch ((test resource-tree-test))
+  (let ((branch (make-hash-table))
+        mapped-branch)
+    (setf (gethash :a branch) 3
+          (gethash :b branch) (make-hash-table)
+          (gethash :c branch) (make-hash-table)
+          (gethash :d (gethash :c branch)) 5
+          mapped-branch (map-branch (lambda (x) (* x x)) branch))
+    (assert-equal 9 (node-of mapped-branch :a))
+    (assert-equal 25 (node-of mapped-branch :c :d))))
+
 (def-test-method test-with-nodes ((test resource-tree-test))
   (let ((string-tree (make-instance 'resource-tree
                                     :load-function #'process-str-file

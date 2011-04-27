@@ -123,6 +123,20 @@
         (setf (node rtree) (make-hash-table))
         (remhash keyword branch))))
 
+
+(declaim (inline make-branch))
+(defun make-branch ()
+  (make-hash-table))
+
+(defun map-branch (function node)
+  "Calls FUNCTION on each leaf node."
+  (if (not (hash-table-p node))
+      (funcall function node)
+      (loop with branch = (make-hash-table)
+            for key being the hash-keys of node using (hash-value value)
+            do (setf (gethash key branch) (map-branch function value))
+            finally (return branch))))
+
 (declaim (inline clear-tree))
 (defmethod clear-tree ((rtree resource-tree))
   (remove-node rtree))
@@ -131,9 +145,9 @@
   (let ((node (gensym "RESOURCE-BRANCH-")))
     `(let ((,node ,resource-branch))
        (let (,@(loop for resource in resources collect
-                    (list resource
-                          `(node-of ,node ,(intern (symbol-name resource)
-                                                         "KEYWORD")))))
+                     (list resource
+                           `(node-of ,node ,(intern (symbol-name resource)
+                                                    "KEYWORD")))))
          ,@body))))
 
 (defmacro with-resource-tree ((var &rest args) &body body)
