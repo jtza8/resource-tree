@@ -1,6 +1,6 @@
 (asdf:defsystem "resource-tree"
   :description "A file resource management system."
-  :version "1.0.1"
+  :version "0.1.3"
   :author "Jens Thiede"
   :license "BSD-Style License"
   :depends-on ("cl-fad")
