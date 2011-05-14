@@ -65,7 +65,8 @@
       (assert-equal "The cake is a lie." (node-of branch :portal :cake))
       (reset-string-tree)
       (setf branch (build-tree string-tree *test-tree-path* :recursive nil))
-      (assert-condition 'invalid-node (node-of branch :portal)))))
+      (assert-condition 'invalid-node (node-of branch :portal))
+      (assert-condition 'invalid-node (node-of branch :bogus)))))
 
 (def-test-method test-load-path ((test resource-tree-test))
   (let ((string-tree (make-instance 'resource-tree
