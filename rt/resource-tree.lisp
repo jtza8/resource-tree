@@ -85,10 +85,13 @@
                               (build-tree rtree sub-path :recursive t))
                    else when (and (not (directory-exists-p sub-path))
                                   (file-exists-p sub-path))
-                     do (let ((value (funcall load-function sub-path)))
-                          (unless (null value)
-                            (setf (gethash (path-keyword sub-path) sub-tree)
-                                  value)))
+                     do (restart-case
+                            (let ((value (funcall load-function sub-path)))
+                              (unless (null value)
+                                (setf (gethash (path-keyword sub-path) sub-tree)
+                                      value)))
+                          (continue ()
+                            :report "Ignore this resource."))
                    finally (return sub-tree)))
             ((file-exists-p path) 
              (setf (gethash (path-keyword path) sub-tree)
@@ -107,7 +110,8 @@
     (if (typep node 'hash-table)
         (loop for sub-node being the hash-values in node
               do (free-node rtree sub-node))
-        (funcall free-function node))))
+        (restart-case (funcall free-function node)
+          (continue () :report "Don't free this resource.")))))
 
 (defgeneric free (resource))
 (defmethod free ((rtree resource-tree))
