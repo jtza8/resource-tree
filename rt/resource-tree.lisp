@@ -25,6 +25,8 @@
                   :initarg :free-function)))
 
 (defun node-of (branch &rest path)
+  (when (listp (car path))
+    (setf path (car path)))
   (loop with pointer = branch
         for key in path
         for remaining from (length path) downto 1
@@ -36,7 +38,7 @@
                               t))
                      () 'invalid-node
                      :invalid-path path
-                     :valid-path (reverse valid-path))
+                     :valid-path valid-path)
              (setf pointer value))
         collect key into valid-path
         finally (return pointer)))
@@ -45,24 +47,36 @@
   (with-slots (tree) rtree
     (apply #'node-of tree path)))
 
-(defun set-node-of (branch value path)
-  (let* ((parent (apply #'node-of branch (butlast path)))
-         (key (car (last path))))
-    (assert (and (not (null key))
-                 (typep parent 'hash-table))
-            () 'invalid-node
-            :invalid-path path)
-    (setf (gethash key parent) value)))
-
 (defsetf node-of (branch &rest path) (value)
-  `(set-node-of ,branch ,value ',path))
+  (when (not (keywordp (car path)))
+    (setf path (if (listp (car path))
+                   (eval (car path))
+                   (car path))))
+  (let (parent key invalid-path)
+    (etypecase path
+      (symbol (setf parent `(node-of ,branch (butlast ,path))
+                    key `(car (last ,path))
+                    invalid-path path))
+      (list   (setf parent
+                    (if (<= (length path) 1)
+                        branch
+                        `(node-of ,branch ',(butlast path)))
+                    key (car (last path))
+                    invalid-path `'(,@path))))
+   `(let ((parent ,parent)
+          (key ,key))
+      (assert (and (not (null key))
+                   (typep parent 'hash-table))
+              () 'invalid-node
+              :invalid-path ,invalid-path)
+      (setf (gethash key parent) ,value))))
 
 (defmethod (setf node) (value (rtree resource-tree) &rest path)
   (with-slots (tree) rtree
     (if (null path)
         (progn (check-type value hash-table)
                (setf tree value))
-        (set-node-of tree value path))))
+        (setf (node-of tree path) value))))
 
 (defun path-keyword (path)
   (let* ((keyword (or (pathname-name path)
